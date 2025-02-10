@@ -13,13 +13,15 @@ repositories {
 }
 
 dependencies {
-    implementation 'io.quarkiverse.langchain4j:quarkus-langchain4j-ollama:0.23.3'
+    implementation 'dev.langchain4j:langchain4j-elasticsearch:0.29.1'
+    implementation 'dev.langchain4j:langchain4j:0.28.0'
     implementation 'io.quarkus:quarkus-confluent-registry-avro'
     implementation 'io.quarkus:quarkus-messaging-kafka'
     implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
     implementation 'io.quarkus:quarkus-kotlin'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib-jdk8'
     implementation 'io.quarkus:quarkus-arc'
+    implementation 'io.quarkus:quarkus-rest'
     implementation("io.confluent:kafka-avro-serializer:7.2.0") {
         exclude group: "jakarta.ws.rs", module: "jakarta.ws.rs-api"
     }
