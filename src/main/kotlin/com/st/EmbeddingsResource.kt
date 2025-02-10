@@ -1,13 +1,16 @@
 package com.st
 
+import dev.langchain4j.data.document.Metadata
+import dev.langchain4j.data.embedding.Embedding
+import dev.langchain4j.data.segment.TextSegment
 import jakarta.annotation.PostConstruct
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
-import org.elasticsearch.client.RestClientBuilder
 import org.jboss.logging.Logger
+import java.lang.String.join
 
 
 class EmbeddingsResource {
@@ -15,8 +18,8 @@ class EmbeddingsResource {
     @ConfigProperty(name = "elastic.url")
     var elasticUrl: String? = null
 
-    @ConfigProperty(name = "elastic.dimension")
-    var elasticDimension: Int = 0
+    @ConfigProperty(name = "elastic.socketTimeout")
+    var elasticSocketTimeout: Int = 0
 
     @ConfigProperty(name = "elastic.indexName")
     var elasticIndexName: String? = null
@@ -25,24 +28,32 @@ class EmbeddingsResource {
 
     @PostConstruct
     fun initialize() {
-        val storeBuilder: ElasticsearchEmbeddingStore.Builder =
-            ElasticsearchEmbeddingStore.builder().serverUrl(elasticUrl)
-        store = storeBuilder
+        store = ElasticsearchEmbeddingStore.builder()
             .restClient(buildRestClient())
-            .dimension(elasticDimension)
             .indexName(elasticIndexName)
             .build()
-        LOGGER.info("Elasticsearch Indexing Client OK on: $elasticUrl")
+        LOGGER.info("Elasticsearch Indexing Client OK on: $elasticUrl for index $elasticIndexName")
     }
 
     private fun buildRestClient(): RestClient {
-        val builder: RestClientBuilder = RestClient.builder(HttpHost.create(elasticUrl))
-        return builder.build()
+        return RestClient.builder(HttpHost.create(elasticUrl))
+            .setRequestConfigCallback{requestConfigBuilder -> requestConfigBuilder.setSocketTimeout(elasticSocketTimeout)}
+            .build()
     }
 
     @Incoming("rss-embeddings")
     fun rssFeed(rssEmbeddings: RssEmbeddings){
-        LOGGER.info("Received RSS embeddings: $rssEmbeddings")
+        val metas: Map<String, String> = java.util.Map.of(
+            "title", rssEmbeddings.title,
+            "link", rssEmbeddings.link,
+            "pubDate", rssEmbeddings.pubDate,
+            "category", rssEmbeddings.category
+        )
+        // Join with double lineSeparator (\n\n) in order to leverage DocumentByParagraphSplitter
+        val content: String = join(System.lineSeparator() + System.lineSeparator(),
+            listOf(rssEmbeddings.title,rssEmbeddings.description))
+        val embedding: Embedding = Embedding.from(rssEmbeddings.embeddings)
+        store?.add(embedding, TextSegment(content, Metadata(metas)))
     }
 
     companion object {
