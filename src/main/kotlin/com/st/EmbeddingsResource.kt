@@ -18,10 +18,10 @@ class EmbeddingsResource {
     @ConfigProperty(name = "elastic.url")
     var elasticUrl: String? = null
 
-    @ConfigProperty(name = "elastic.socketTimeout")
+    @ConfigProperty(name = "elastic.socket.timeout")
     var elasticSocketTimeout: Int = 0
 
-    @ConfigProperty(name = "elastic.indexName")
+    @ConfigProperty(name = "elastic.index.name")
     var elasticIndexName: String? = null
 
     private var store: ElasticsearchEmbeddingStore? = null
