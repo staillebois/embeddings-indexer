@@ -7,6 +7,7 @@ import jakarta.annotation.PostConstruct
 import org.eclipse.microprofile.config.inject.ConfigProperty
 import org.eclipse.microprofile.reactive.messaging.Incoming
 import dev.langchain4j.store.embedding.elasticsearch.ElasticsearchEmbeddingStore;
+import org.apache.commons.codec.digest.DigestUtils
 import org.apache.http.HttpHost
 import org.elasticsearch.client.RestClient
 import org.jboss.logging.Logger
@@ -53,7 +54,8 @@ class EmbeddingsResource {
         val content: String = join(System.lineSeparator() + System.lineSeparator(),
             listOf(rssEmbeddings.title,rssEmbeddings.description))
         val embedding: Embedding = Embedding.from(rssEmbeddings.embeddings)
-        store?.add(embedding, TextSegment(content, Metadata(metas)))
+        val id = DigestUtils.sha256Hex(rssEmbeddings.title) // Generate unique id based on title to avoid duplication
+        store?.addAll(listOf(id), listOf(embedding), listOf(TextSegment(content, Metadata(metas))))
     }
 
     companion object {
